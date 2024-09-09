@@ -6,11 +6,10 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import time
+import re  # Import the regular expressions module
 
 app = Flask(__name__)
 CORS(app)
-# CORS(app, resources={r"/api/*": {"origins": "http://localhost:3003"}})
-# app = Flask(__name__)
 
 # Database configuration
 DB_CONFIG = {
@@ -67,9 +66,13 @@ def scrape_and_insert_data():
         job_link_tag = job_section.find("a",
                                         class_="base-card__full-link absolute top-0 right-0 bottom-0 left-0 p-0 z-[2]")
         job_link = job_link_tag['href'].strip() if job_link_tag else "N/A"
-        job_description = (job_section.find("div",
-                                            class_="show-more-less-html__markup relative overflow-hidden").text.strip()) if job_section.find(
+        job_description_raw = (job_section.find("div",
+                                                class_="show-more-less-html__markup relative overflow-hidden").text.strip()) if job_section.find(
             "div", class_="show-more-less-html__markup relative overflow-hidden") else "N/A"
+
+        # Clean up extra spaces, newlines, and tabs in job_description
+        job_description = re.sub(r'\s+', ' ', job_description_raw).strip()
+
         company_name = (job_section.find("a", class_="hidden-nested-link").text.strip()) if job_section.find("a",
                                                                                                              class_="hidden-nested-link") else "N/A"
         company_link_tag = job_section.find("a", class_="hidden-nested-link")
@@ -124,10 +127,6 @@ def get_jobs():
 
     search_query = f"%{search_query}%"
 
-    # Paginated request
-    page = int(page)
-    offset = (page - 1) * per_page  # Calculate the offset
-
     query = """
                 SELECT * FROM linkedin
                 WHERE job_title LIKE %s OR job_link LIKE %s OR company_name LIKE %s OR company_link LIKE %s OR job_source LIKE %s OR job_location LIKE %s OR salary LIKE %s OR job_type LIKE %s OR job_description LIKE %s OR job_posted_date LIKE %s
@@ -146,7 +145,6 @@ def get_jobs():
          search_query, search_query, search_query))
     total_jobs = cursor.fetchone()['total']
 
-    # Return jobs along with pagination metadata
     response = {
         'jobs': jobs,
         'page': page,
