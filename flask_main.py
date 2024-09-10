@@ -7,6 +7,7 @@ from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import time
 import re  # Import the regular expressions module
+from apscheduler.schedulers.background import BackgroundScheduler  # Import APScheduler
 
 app = Flask(__name__)
 CORS(app)
@@ -20,7 +21,7 @@ DB_CONFIG = {
     'database': 'web_scraping'
 }
 
-
+# Initialize Selenium WebDriver
 def init_webdriver():
     chrome_options = Options()
     chrome_options.add_argument('--headless')
@@ -32,7 +33,7 @@ def init_webdriver():
     chrome_options.add_argument("--disable-dev-shm-usage")
     return webdriver.Chrome(options=chrome_options)
 
-
+# Scrape and insert data into the database
 def scrape_and_insert_data():
     driver = init_webdriver()
     url = "https://www.linkedin.com/jobs/search/?currentJobId=4008111986&distance=25.0&f_TPR=r86400&f_WT=2&geoId=92000000&keywords=php&origin=JOB_SEARCH_PAGE_JOB_FILTER"
@@ -61,38 +62,26 @@ def scrape_and_insert_data():
     """
 
     for job_section in job_sections:
-        job_title = (job_section.find("h3", class_="base-search-card__title").text.strip()) if job_section.find("h3",
-                                                                                                                class_="base-search-card__title") else "N/A"
-        job_link_tag = job_section.find("a",
-                                        class_="base-card__full-link absolute top-0 right-0 bottom-0 left-0 p-0 z-[2]")
+        job_title = (job_section.find("h3", class_="base-search-card__title").text.strip()) if job_section.find("h3", class_="base-search-card__title") else "N/A"
+        job_link_tag = job_section.find("a", class_="base-card__full-link absolute top-0 right-0 bottom-0 left-0 p-0 z-[2]")
         job_link = job_link_tag['href'].strip() if job_link_tag else "N/A"
-        job_description_raw = (job_section.find("div",
-                                                class_="show-more-less-html__markup relative overflow-hidden").text.strip()) if job_section.find(
+        job_description_raw = (job_section.find("div", class_="show-more-less-html__markup relative overflow-hidden").text.strip()) if job_section.find(
             "div", class_="show-more-less-html__markup relative overflow-hidden") else "N/A"
 
-        # Clean up extra spaces, newlines, and tabs in job_description
         job_description = re.sub(r'\s+', ' ', job_description_raw).strip()
 
-        company_name = (job_section.find("a", class_="hidden-nested-link").text.strip()) if job_section.find("a",
-                                                                                                             class_="hidden-nested-link") else "N/A"
+        company_name = (job_section.find("a", class_="hidden-nested-link").text.strip()) if job_section.find("a", class_="hidden-nested-link") else "N/A"
         company_link_tag = job_section.find("a", class_="hidden-nested-link")
         company_link = company_link_tag['href'].strip() if company_link_tag else "N/A"
         job_source = "LinkedIn"
-        job_type = (job_section.find("li",
-                                     class_="job-details-jobs-unified-top-card__job-insight job-details-jobs-unified-top-card__job-insight--highlight").text.strip()) if job_section.find(
-            "li",
-            class_="job-details-jobs-unified-top-card__job-insight job-details-jobs-unified-top-card__job-insight--highlight") else "N/A"
+        job_type = (job_section.find("li", class_="job-details-jobs-unified-top-card__job-insight job-details-jobs-unified-top-card__job-insight--highlight").text.strip()) if job_section.find(
+            "li", class_="job-details-jobs-unified-top-card__job-insight job-details-jobs-unified-top-card__job-insight--highlight") else "N/A"
         job_location = (job_section.find("span", class_="job-search-card__location").text.strip()) if job_section.find(
             "span", class_="job-search-card__location") else "N/A"
-        salary = (job_section.find("div", class_="salary compensation__salary").text.strip()) if job_section.find("div",
-                                                                                                                  class_="salary compensation__salary") else "N/A"
-        job_posted_date = (
-            job_section.find("time", class_="job-search-card__listdate--new").text.strip()) if job_section.find("time",
-                                                                                                                class_="job-search-card__listdate--new") else "N/A"
+        salary = (job_section.find("div", class_="salary compensation__salary").text.strip()) if job_section.find("div", class_="salary compensation__salary") else "N/A"
+        job_posted_date = (job_section.find("time", class_="job-search-card__listdate--new").text.strip()) if job_section.find("time", class_="job-search-card__listdate--new") else "N/A"
 
-        data = (
-        job_title, job_link, company_name, company_link, job_source, job_location, salary, job_type, job_description,
-        job_posted_date)
+        data = (job_title, job_link, company_name, company_link, job_source, job_location, salary, job_type, job_description, job_posted_date)
         try:
             cursor.execute(insert_query, data)
         except mysql.connector.Error as err:
@@ -104,15 +93,21 @@ def scrape_and_insert_data():
     conn.close()
 
 
+# Scheduler function to run the scraping task every hour
+def schedule_scraping_job():
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(scrape_and_insert_data, 'interval', hours=1)  # Schedule the job to run every hour
+    scheduler.start()
+
+# API route to trigger scraping manually
 @app.route('/scrape', methods=['POST'])
 def scrape():
     scrape_and_insert_data()
     return jsonify({"status": "success", "message": "Data scraped and inserted successfully."})
 
-
+# API to retrieve jobs with pagination and search
 @app.route('/api/jobs', methods=['POST'])
 def get_jobs():
-    # Retrieve the search query and pagination parameters
     data = request.get_json() or {}
     search_query = data.get('search', '')
     page = data.get('page', 1)
@@ -138,7 +133,6 @@ def get_jobs():
 
     jobs = cursor.fetchall()
 
-    # Get the total number of jobs for pagination metadata
     cursor.execute(
         "SELECT COUNT(*) as total FROM linkedin WHERE job_title LIKE %s OR job_link LIKE %s OR company_name LIKE %s OR company_link LIKE %s OR job_source LIKE %s OR job_location LIKE %s OR salary LIKE %s OR job_type LIKE %s OR job_description LIKE %s OR job_posted_date LIKE %s",
         (search_query, search_query, search_query, search_query, search_query, search_query, search_query,
@@ -160,4 +154,5 @@ def get_jobs():
 
 
 if __name__ == "__main__":
+    schedule_scraping_job()  # Start the cron job
     app.run(port=5000)

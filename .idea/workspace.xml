@@ -4,7 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="66a38f30-ccce-4f47-8c78-4753e1e4817d" name="Changes" comment="backend api changes">
+    <list default="true" id="66a38f30-ccce-4f47-8c78-4753e1e4817d" name="Changes" comment="Clean up extra spaces, newlines, and tabs in job_description">
+      <change afterPath="$PROJECT_DIR$/Procfile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/flask_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/flask_main.py" afterDir="false" />
     </list>
@@ -25,26 +26,26 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.flask_main.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "C:/Users/DELL/PycharmProjects/linkedin_scraping",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.flask_main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/DELL/PycharmProjects/linkedin_scraping&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
-  "keyToStringList": {
-    "DatabaseDriversLRU": [
-      "mysql"
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;mysql&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="flask_main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="linkedin_scraping" />
@@ -94,7 +95,8 @@
       <workItem from="1725393900970" duration="17068000" />
       <workItem from="1725541470047" duration="13412000" />
       <workItem from="1725600383160" duration="3767000" />
-      <workItem from="1725888456532" duration="17058000" />
+      <workItem from="1725888456532" duration="22657000" />
+      <workItem from="1725991100338" duration="635000" />
     </task>
     <task id="LOCAL-00001" summary="backend api changes">
       <option name="closed" value="true" />
@@ -104,7 +106,15 @@
       <option name="project" value="LOCAL" />
       <updated>1725906707095</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Clean up extra spaces, newlines, and tabs in job_description">
+      <option name="closed" value="true" />
+      <created>1725911962076</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1725911962076</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -112,7 +122,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="backend api changes" />
-    <option name="LAST_COMMIT_MESSAGE" value="backend api changes" />
+    <MESSAGE value="Clean up extra spaces, newlines, and tabs in job_description" />
+    <option name="LAST_COMMIT_MESSAGE" value="Clean up extra spaces, newlines, and tabs in job_description" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/linkedin_scraping$flask_main.coverage" NAME="flask_main Coverage Results" MODIFIED="1725477001450" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
