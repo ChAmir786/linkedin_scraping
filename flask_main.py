@@ -56,6 +56,16 @@ def scrape_and_insert_data():
     conn = mysql.connector.connect(**DB_CONFIG)
     cursor = conn.cursor()
 
+    # Step 1: Remove previous data from the LinkedIn table
+    try:
+        cursor.execute("DELETE FROM linkedin")
+        conn.commit()
+        print("Old data removed successfully.")
+    except mysql.connector.Error as err:
+        print(f"Error deleting old data: {err}")
+        return
+
+    # Step 2: Insert new data
     insert_query = """
     INSERT INTO linkedin (job_title, job_link, company_name, company_link, job_source, job_location, salary, job_type, job_description, job_posted_date)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
