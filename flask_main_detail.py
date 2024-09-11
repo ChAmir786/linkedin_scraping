@@ -38,9 +38,9 @@ def parseHtml(html):
 def extractAdditionalJobData(soup):
     job_description = (soup.find("div", class_="description__text description__text--rich")
                        .text.strip()) if soup.find("div", class_="description__text description__text--rich") else "N/A"
-    job_type = (soup.find("span", class_="description__job-criteria-text description__job-criteria-text--criteria")
+    job_type = (soup.find("span", class_="ui-label ui-label--accent-3 text-body-small")
                 .text.strip()) if soup.find("span",
-                                            class_="description__job-criteria-text description__job-criteria-text--criteria") else "N/A"
+                                            class_="ui-label ui-label--accent-3 text-body-small") else "N/A"
     salary = (soup.find("div", class_="salary compensation__salary")
               .text.strip()) if soup.find("div", class_="salary compensation__salary") else "N/A"
 

@@ -5,9 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="66a38f30-ccce-4f47-8c78-4753e1e4817d" name="Changes" comment="Clean up extra spaces, newlines, and tabs in job_description">
-      <change afterPath="$PROJECT_DIR$/Procfile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flask_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/flask_main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Procfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/flask_main_detail.py" beforeDir="false" afterPath="$PROJECT_DIR$/flask_main_detail.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -96,7 +96,8 @@
       <workItem from="1725541470047" duration="13412000" />
       <workItem from="1725600383160" duration="3767000" />
       <workItem from="1725888456532" duration="22657000" />
-      <workItem from="1725991100338" duration="635000" />
+      <workItem from="1725991100338" duration="12369000" />
+      <workItem from="1726079200820" duration="4200000" />
     </task>
     <task id="LOCAL-00001" summary="backend api changes">
       <option name="closed" value="true" />
