@@ -1,13 +1,13 @@
 from flask import Flask, jsonify, request
-from flask_cors import CORS  # Import CORS
+from flask_cors import CORS
 import mysql.connector
 from mysql.connector import Error
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import time
-import re  # Import the regular expressions module
-from apscheduler.schedulers.background import BackgroundScheduler  # Import APScheduler
+import re
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 CORS(app)
@@ -33,76 +33,94 @@ def init_webdriver():
     chrome_options.add_argument("--disable-dev-shm-usage")
     return webdriver.Chrome(options=chrome_options)
 
-# Scrape and insert data into the database
+# List of keywords to search for jobs
+KEYWORDS = ['php developer', 'software engineer', 'full stack developer', 'backend developer', 'frontend developer', 'mern stack developer', 'react developer', 'Laravel developer', 'nodejs developer', 'javascript developer']  # Add more keywords
+
+# Function to dynamically generate URLs based on keywords
+def generate_urls():
+    base_url = "https://www.linkedin.com/jobs/search/?currentJobId=4023652314&f_TPR=r86400&f_WT=2&geoId=103644278&keywords={keyword}&origin=JOB_SEARCH_PAGE_SEARCH_BUTTON&refresh=true"
+    return [base_url.format(keyword=keyword.replace(' ', '%20')) for keyword in KEYWORDS]
+
+# Function to scrape data and insert it into the database
 def scrape_and_insert_data():
-    driver = init_webdriver()
-    url = "https://www.linkedin.com/jobs/search/?currentJobId=4008111986&distance=25.0&f_TPR=r86400&f_WT=2&geoId=92000000&keywords=php&origin=JOB_SEARCH_PAGE_JOB_FILTER"
-    driver.get(url)
-    driver.implicitly_wait(10)
-    driver.execute_script("window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });")
-    time.sleep(3)
-    html = driver.page_source
-    driver.quit()
+    urls = generate_urls()
 
-    soup = BeautifulSoup(html, "html.parser")
-    section = soup.find("section", class_="two-pane-serp-page__results-list")
-    if section is None:
-        print("Section not found. The structure might have changed.")
-        return
-
-    job_sections = section.find_all("div",
-                                    class_="base-card relative w-full hover:no-underline focus:no-underline base-card--link base-search-card base-search-card--link job-search-card")
-
+    # Database connection
     conn = mysql.connector.connect(**DB_CONFIG)
     cursor = conn.cursor()
 
-    # Step 1: Remove previous data from the LinkedIn table
-    try:
-        cursor.execute("DELETE FROM linkedin")
-        conn.commit()
-        print("Old data removed successfully.")
-    except mysql.connector.Error as err:
-        print(f"Error deleting old data: {err}")
-        return
+    # # Step 1: Remove previous data from the LinkedIn table
+    # try:
+    #     cursor.execute("DELETE FROM linkedin")
+    #     conn.commit()
+    #     print("Old data removed successfully.")
+    # except mysql.connector.Error as err:
+    #     print(f"Error deleting old data: {err}")
+    #     return
 
-    # Step 2: Insert new data
     insert_query = """
     INSERT INTO linkedin (job_title, job_link, company_name, company_link, job_source, job_location, salary, job_type, job_description, job_posted_date)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
 
-    for job_section in job_sections:
-        job_title = (job_section.find("h3", class_="base-search-card__title").text.strip()) if job_section.find("h3", class_="base-search-card__title") else "N/A"
-        job_link_tag = job_section.find("a", class_="base-card__full-link absolute top-0 right-0 bottom-0 left-0 p-0 z-[2]")
-        job_link = job_link_tag['href'].strip() if job_link_tag else "N/A"
-        job_description_raw = (job_section.find("div", class_="show-more-less-html__markup relative overflow-hidden").text.strip()) if job_section.find(
-            "div", class_="show-more-less-html__markup relative overflow-hidden") else "N/A"
+    # Loop through each URL and scrape job data
+    for url in urls:
+        driver = init_webdriver()
+        driver.get(url)
+        driver.implicitly_wait(10)
+        driver.execute_script("window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });")
+        time.sleep(3)
+        html = driver.page_source
+        driver.quit()
 
-        job_description = re.sub(r'\s+', ' ', job_description_raw).strip()
+        soup = BeautifulSoup(html, "html.parser")
+        section = soup.find("section", class_="two-pane-serp-page__results-list")
+        if section is None:
+            print(f"Section not found for URL: {url}. The structure might have changed.")
+            continue
 
-        company_name = (job_section.find("a", class_="hidden-nested-link").text.strip()) if job_section.find("a", class_="hidden-nested-link") else "N/A"
-        company_link_tag = job_section.find("a", class_="hidden-nested-link")
-        company_link = company_link_tag['href'].strip() if company_link_tag else "N/A"
-        job_source = "LinkedIn"
-        job_type = (job_section.find("li", class_="job-details-jobs-unified-top-card__job-insight job-details-jobs-unified-top-card__job-insight--highlight").text.strip()) if job_section.find(
-            "li", class_="job-details-jobs-unified-top-card__job-insight job-details-jobs-unified-top-card__job-insight--highlight") else "N/A"
-        job_location = (job_section.find("span", class_="job-search-card__location").text.strip()) if job_section.find(
-            "span", class_="job-search-card__location") else "N/A"
-        salary = (job_section.find("div", class_="salary compensation__salary").text.strip()) if job_section.find("div", class_="salary compensation__salary") else "N/A"
-        job_posted_date = (job_section.find("time", class_="job-search-card__listdate--new").text.strip()) if job_section.find("time", class_="job-search-card__listdate--new") else "N/A"
+        job_sections = section.find_all("div",
+                                        class_="base-card relative w-full hover:no-underline focus:no-underline base-card--link base-search-card base-search-card--link job-search-card")
 
-        data = (job_title, job_link, company_name, company_link, job_source, job_location, salary, job_type, job_description, job_posted_date)
-        try:
-            cursor.execute(insert_query, data)
-        except mysql.connector.Error as err:
-            print(f"Error inserting data: {err}")
-            print(f"Failed data: {data}")
+        for job_section in job_sections:
+            job_title = job_section.find("h3", class_="base-search-card__title").text.strip() if job_section.find(
+                "h3", class_="base-search-card__title") else "N/A"
+            job_link_tag = job_section.find("a", class_="base-card__full-link")
+            job_link = job_link_tag['href'].strip() if job_link_tag else "N/A"
+            job_description_raw = job_section.find("div",
+                class_="show-more-less-html__markup relative overflow-hidden").text.strip() if job_section.find(
+                "div", class_="show-more-less-html__markup relative overflow-hidden") else "N/A"
+            job_description = re.sub(r'\s+', ' ', job_description_raw).strip()
+
+            company_name = job_section.find("a", class_="hidden-nested-link").text.strip() if job_section.find("a",
+                                                                                                                 class_="hidden-nested-link") else "N/A"
+            company_link_tag = job_section.find("a", class_="hidden-nested-link")
+            company_link = company_link_tag['href'].strip() if company_link_tag else "N/A"
+            job_source = "LinkedIn"
+            job_type = job_section.find("li",
+                class_="job-details-jobs-unified-top-card__job-insight job-details-jobs-unified-top-card__job-insight--highlight").text.strip() if job_section.find(
+                "li", class_="job-details-jobs-unified-top-card__job-insight job-details-jobs-unified-top-card__job-insight--highlight") else "N/A"
+            job_location = job_section.find("span", class_="job-search-card__location").text.strip() if job_section.find(
+                "span", class_="job-search-card__location") else "N/A"
+            salary = job_section.find("div", class_="salary compensation__salary").text.strip() if job_section.find(
+                "div", class_="salary compensation__salary") else "N/A"
+            job_posted_date = job_section.find("time", class_="job-search-card__listdate--new").text.strip() if job_section.find(
+                "time", class_="job-search-card__listdate--new") else "N/A"
+
+            data = (job_title, job_link, company_name, company_link, job_source, job_location, salary, job_type,
+                    job_description, job_posted_date)
+
+            try:
+                cursor.execute(insert_query, data)
+            except mysql.connector.Error as err:
+                print(f"Error inserting data: {err}")
+                print(f"Failed data: {data}")
+
+        print(f"Scraping completed for URL: {url}")
 
     conn.commit()
     cursor.close()
     conn.close()
-
-
 # Scheduler function to run the scraping task every hour
 def schedule_scraping_job():
     scheduler = BackgroundScheduler()
