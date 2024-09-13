@@ -1,15 +1,20 @@
 import time
-import mysql.connector
+import psycopg2
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def init():
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument(
-    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36")
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
@@ -63,7 +68,7 @@ def update_job_data(cursor, data, job_id):
             data['Salary'],
             job_id
         ))
-    except mysql.connector.Error as err:
+    except psycopg2.Error as err:
         print(f"Error updating data: {err}")
         print(f"Failed data: {data}")
 
@@ -71,11 +76,11 @@ def update_job_data(cursor, data, job_id):
 def main():
     # Database connection parameters
     config = {
-        'user': 'root',
-        'password': '1234567',
-        'host': 'localhost',
-        'port': 3306,
-        'database': 'web_scraping'
+        'user': os.getenv('POSTGRES_USER'),
+        'password': os.getenv('POSTGRES_PASSWORD'),
+        'host': os.getenv('POSTGRES_HOST'),
+        'port': os.getenv('POSTGRES_PORT'),
+        'database': os.getenv('POSTGRES_DB'),
     }
 
     # Initialize the web driver
@@ -87,7 +92,7 @@ def main():
 
     try:
         # Connect to the database
-        conn = mysql.connector.connect(**config)
+        conn = psycopg2.connect(**config)
         cursor = conn.cursor()
 
         offset = 0
@@ -122,7 +127,7 @@ def main():
             # Increment offset for the next batch
             offset += limit
 
-    except mysql.connector.Error as err:
+    except psycopg2.Error as err:
         print(f"Database Error: {err}")
 
     finally:

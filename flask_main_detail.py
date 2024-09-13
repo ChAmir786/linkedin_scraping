@@ -1,11 +1,17 @@
 from flask import Flask, jsonify
 import time
-import mysql.connector
+import psycopg2
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
+
 
 # Function to initialize the Selenium driver
 def init():
@@ -23,6 +29,7 @@ def init():
 
     return webdriver.Chrome(options=chrome_options)
 
+
 # Function to crawl a page and return its content
 def crawlPage(driver, url):
     driver.get(url)
@@ -30,9 +37,11 @@ def crawlPage(driver, url):
     time.sleep(3)
     return driver.page_source
 
+
 # Function to parse the HTML using BeautifulSoup
 def parseHtml(html):
     return BeautifulSoup(html, "html.parser")
+
 
 # Function to extract additional job data
 def extractAdditionalJobData(soup):
@@ -50,7 +59,8 @@ def extractAdditionalJobData(soup):
         "Salary": salary
     }
 
-# Function to update the job data in the MySQL database
+
+# Function to update the job data in the Postgres database
 def update_job_data(cursor, data, job_id):
     try:
         update_query = """
@@ -64,19 +74,20 @@ def update_job_data(cursor, data, job_id):
             data['Salary'],
             job_id
         ))
-    except mysql.connector.Error as err:
+    except psycopg2.Error as err:
         print(f"Error updating data: {err}")
         print(f"Failed data: {data}")
+
 
 # Main function that handles scraping and updating jobs
 def scrape_and_update_jobs():
     # Database connection parameters
     config = {
-        'user': 'root',
-        'password': '1234567',
-        'host': 'localhost',
-        'port': 3306,
-        'database': 'web_scraping'
+        'user': os.getenv('POSTGRES_USER'),
+        'password': os.getenv('POSTGRES_PASSWORD'),
+        'host': os.getenv('POSTGRES_HOST'),
+        'port': os.getenv('POSTGRES_PORT'),
+        'database': os.getenv('POSTGRES_DB'),
     }
 
     # Initialize the web driver
@@ -88,7 +99,7 @@ def scrape_and_update_jobs():
 
     try:
         # Connect to the database
-        conn = mysql.connector.connect(**config)
+        conn = psycopg2.connect(**config)
         cursor = conn.cursor()
 
         offset = 0
@@ -123,7 +134,7 @@ def scrape_and_update_jobs():
             # Increment offset for the next batch
             offset += limit
 
-    except mysql.connector.Error as err:
+    except psycopg2.Error as err:
         print(f"Database Error: {err}")
 
     finally:
@@ -134,6 +145,7 @@ def scrape_and_update_jobs():
             conn.close()
         driver.quit()
 
+
 # Flask route to trigger the scraping and updating process
 @app.route('/scrape-jobs', methods=['POST'])
 def scrape_jobs():
@@ -142,6 +154,7 @@ def scrape_jobs():
         return jsonify({'message': 'Jobs scraped and updated successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)

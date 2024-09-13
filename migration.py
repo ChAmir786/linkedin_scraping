@@ -1,19 +1,25 @@
-import mysql.connector
+import psycopg2
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
+
 
 def apply_migration():
     # Database connection parameters
     config = {
-        'user': 'root',
-        'password': '1234567',
-        'host': 'localhost',
-        'port': 3306,  # Specify the port separately
-        'database': 'web_scraping'
+        'user': os.getenv('POSTGRES_USER'),
+        'password': os.getenv('POSTGRES_PASSWORD'),
+        'host': os.getenv('POSTGRES_HOST'),
+        'port': os.getenv('POSTGRES_PORT'),
+        'database': os.getenv('POSTGRES_DB'),
     }
 
     # SQL query to create the table
     create_table_query = """
     CREATE TABLE IF NOT EXISTS linkedin (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         job_title VARCHAR(255),
         job_link TEXT,
         company_name VARCHAR(255),
@@ -32,7 +38,7 @@ def apply_migration():
 
     try:
         # Connect to the database
-        conn = mysql.connector.connect(**config)
+        conn = psycopg2.connect(**config)
         cursor = conn.cursor()
 
         # Execute migration commands
@@ -43,7 +49,7 @@ def apply_migration():
 
         print("Table 'linkedin' created or already exists.")
 
-    except mysql.connector.Error as err:
+    except psycopg2.Error as err:
         print(f"Error: {err}")
 
     finally:

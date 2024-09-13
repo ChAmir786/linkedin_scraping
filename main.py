@@ -1,8 +1,13 @@
 import time
-import mysql.connector
+import psycopg2
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def init():
@@ -39,25 +44,30 @@ def findSections(soup):
 
 
 def findjobs(p_section):
-    return p_section.find_all("div", class_="base-card relative w-full hover:no-underline focus:no-underline base-card--link base-search-card base-search-card--link job-search-card")
+    return p_section.find_all("div",
+                              class_="base-card relative w-full hover:no-underline focus:no-underline base-card--link base-search-card base-search-card--link job-search-card")
 
 
 def extractJobData(job_sections):
     job_title = (job_sections.find("h3", class_="base-search-card__title")
                  .text.strip()) if job_sections.find("h3", class_="base-search-card__title") else "N/A"
-    job_link_tag = job_sections.find("a", class_="base-card__full-link absolute top-0 right-0 bottom-0 left-0 p-0 z-[2]")
+    job_link_tag = job_sections.find("a",
+                                     class_="base-card__full-link absolute top-0 right-0 bottom-0 left-0 p-0 z-[2]")
     job_link = job_link_tag['href'].strip() if job_link_tag else "N/A"
 
     job_description = (job_sections.find("div", class_="show-more-less-html__markup relative overflow-hidden")
-                       .text.strip()) if job_sections.find("div", class_="show-more-less-html__markup relative overflow-hidden") else "N/A"
+                       .text.strip()) if job_sections.find("div",
+                                                           class_="show-more-less-html__markup relative overflow-hidden") else "N/A"
     company_name = (job_sections.find("a", class_="hidden-nested-link")
                     .text.strip()) if job_sections.find("a", class_="hidden-nested-link") else "N/A"
     company_link_tag = job_sections.find("a", class_="hidden-nested-link")
     company_link = company_link_tag['href'].strip() if company_link_tag else "N/A"
 
     job_source = "LinkedIn"
-    job_type = (job_sections.find("li", class_="job-details-jobs-unified-top-card__job-insight job-details-jobs-unified-top-card__job-insight--highlight")
-                .text.strip()) if job_sections.find("li", class_="job-details-jobs-unified-top-card__job-insight job-details-jobs-unified-top-card__job-insight--highlight") else "N/A"
+    job_type = (job_sections.find("li",
+                                  class_="job-details-jobs-unified-top-card__job-insight job-details-jobs-unified-top-card__job-insight--highlight")
+                .text.strip()) if job_sections.find("li",
+                                                    class_="job-details-jobs-unified-top-card__job-insight job-details-jobs-unified-top-card__job-insight--highlight") else "N/A"
     job_location = (job_sections.find("span", class_="job-search-card__location")
                     .text.strip()) if job_sections.find("span", class_="job-search-card__location") else "N/A"
     salary = (job_sections.find("div", class_="salary compensation__salary")
@@ -81,23 +91,34 @@ def extractJobData(job_sections):
 
 def insert_job_data(cursor, data):
     try:
-        insert_query = """
-        INSERT INTO linkedin (job_title, job_link, company_name, company_link, job_source, job_location, salary, job_type, job_description, job_posted_date)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        check_query = """
+        SELECT 1 FROM linkedin WHERE job_title = %s LIMIT 1
         """
-        cursor.execute(insert_query, (
-            data['JobTitle'],
-            data['JobLink'],
-            data['CompanyName'],
-            data['CompanyLink'],
-            data['JobSource'],
-            data['JobLocation'],
-            data['Salary'],
-            data['JobType'],
-            data['JobDescription'],
-            data['JobPostedDate']
-        ))
-    except mysql.connector.Error as err:
+        cursor.execute(check_query, (data['JobTitle'],))
+        result = cursor.fetchone()
+
+        # If result is None, the job does not exist, proceed to insert it
+        if result is None:
+            insert_query = """
+            INSERT INTO linkedin (job_title, job_link, company_name, company_link, job_source, job_location, salary, job_type, job_description, job_posted_date)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (
+                data['JobTitle'],
+                data['JobLink'],
+                data['CompanyName'],
+                data['CompanyLink'],
+                data['JobSource'],
+                data['JobLocation'],
+                data['Salary'],
+                data['JobType'],
+                data['JobDescription'],
+                data['JobPostedDate']
+            ))
+        else:
+            print(f"Job with title '{data['JobTitle']}' already exists in the database.")
+
+    except psycopg2.Error as err:
         print(f"Error inserting data: {err}")
         print(f"Failed data: {data}")
 
@@ -105,11 +126,11 @@ def insert_job_data(cursor, data):
 def main():
     # Database connection parameters
     config = {
-        'user': 'root',
-        'password': '1234567',
-        'host': 'localhost',
-        'port': 3306,
-        'database': 'web_scraping'
+        'user': os.getenv('POSTGRES_USER'),
+        'password': os.getenv('POSTGRES_PASSWORD'),
+        'host': os.getenv('POSTGRES_HOST'),
+        'port': os.getenv('POSTGRES_PORT'),
+        'database': os.getenv('POSTGRES_DB'),
     }
 
     # Initialize the web driver
@@ -129,7 +150,7 @@ def main():
         # print(job_sections)
 
         # Connect to the database
-        conn = mysql.connector.connect(**config)
+        conn = psycopg2.connect(**config)
         cursor = conn.cursor()
 
         for job_section in job_sections:
@@ -139,7 +160,7 @@ def main():
         # Commit the transaction
         conn.commit()
 
-    except mysql.connector.Error as err:
+    except psycopg2.Error as err:
         print(f"Database Error: {err}")
 
     finally:
